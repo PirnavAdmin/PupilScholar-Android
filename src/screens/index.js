@@ -1,0 +1,9 @@
+export { SplashScreen } from './splash/SplashScreen';
+export { LoginScreen } from './auth/LoginScreen';
+export { TeacherDashboardScreen } from './teacher/TeacherDashboardScreen';
+export { TeacherClassesTab } from './teacher/TeacherClassesTab';
+export { StudentDashboardScreen } from './student/StudentDashboardScreen';
+export { StudentTimetableTab } from './student/StudentTimetableTab';
+export { ParentDashboardScreen } from './parent/ParentDashboardScreen';
+export { ParentChildrenTab } from './parent/ParentChildrenTab';
+export { ProfileScreen } from './shared/ProfileScreen';

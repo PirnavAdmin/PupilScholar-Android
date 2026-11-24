@@ -1,15 +1,17 @@
 {
   "expo": {
-    "name": "PupilScholar-Android",
-    "slug": "PupilScholar-Android",
+    "name": "PupilScholar",
+    "slug": "pupilscholar",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.pupilscholar.app"
     },
     "android": {
+      "package": "com.pupilscholar.app",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
