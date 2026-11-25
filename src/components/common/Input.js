@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, forwardRef, useImperativeHandle } from 'react';
 import {
   View,
   TextInput,
@@ -14,17 +14,8 @@ import { useTheme } from '../../context/ThemeContext';
  * Universal Input Component with automatic Theme (Dark/Light) adaptability
  * Fixed height (52px) to prevent vertical stretching glitches.
  * Tapping anywhere on the input wrapper instantly focuses the TextInput.
- * 
- * @param {'light'|'dark'|'glass'|'auto'} theme
- * @param {string} label
- * @param {string} error
- * @param {string} helperText
- * @param {boolean} required
- * @param {React.ReactNode} leftIcon
- * @param {React.ReactNode} rightIcon
- * @param {boolean} isPassword
  */
-export const Input = ({
+export const Input = forwardRef(({
   label,
   error,
   helperText,
@@ -43,11 +34,13 @@ export const Input = ({
   autoCapitalize = 'none',
   keyboardType = 'default',
   ...rest
-}) => {
+}, ref) => {
   const { isDark: contextIsDark } = useTheme();
   const inputRef = useRef(null);
   const [isFocused, setIsFocused] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  useImperativeHandle(ref, () => inputRef.current);
 
   const isSecure = isPassword ? !showPassword : secureTextEntry;
   const isDark = theme === 'auto' ? contextIsDark : theme === 'dark' || theme === 'glass';
@@ -173,7 +166,9 @@ export const Input = ({
       ) : null}
     </View>
   );
-};
+});
+
+Input.displayName = 'Input';
 
 const styles = StyleSheet.create({
   container: {

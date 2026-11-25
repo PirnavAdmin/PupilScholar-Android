@@ -5,49 +5,86 @@ import {
   StyleSheet,
   TouchableOpacity,
   Keyboard,
-  ActivityIndicator,
 } from 'react-native';
 import { AppText } from '../typography/AppText';
 import { Input } from './Input';
 import { Button } from './Button';
 import { AlertBanner } from '../feedback/AlertBanner';
 import { useTheme } from '../../context/ThemeContext';
+import { sendOtpApi, resetPasswordWithOtpApi } from '../../api/authApi';
 import { SPACING, RADIUS } from '../../constants/spacing';
 
 /**
  * ForgotPasswordModal
- * Clean pop-up dialog for password recovery with instant validation.
+ * Two-step dialog for password recovery via SMS.Api OTP verification
  */
 export const ForgotPasswordModal = ({ visible, onClose }) => {
   const { isDark, colors } = useTheme();
+  const [step, setStep] = useState('request_otp'); // 'request_otp' | 'verify_reset' | 'completed'
   const [recoveryEmail, setRecoveryEmail] = useState('');
+  const [otpCode, setOtpCode] = useState('');
+  const [newPassword, setNewPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [successMessage, setSuccessMessage] = useState(null);
+  const [infoMessage, setInfoMessage] = useState(null);
   const [errorMessage, setErrorMessage] = useState(null);
 
-  const handleResetSubmit = () => {
+  const handleSendOtp = async () => {
     Keyboard.dismiss();
     setErrorMessage(null);
-    setSuccessMessage(null);
+    setInfoMessage(null);
 
-    if (!recoveryEmail.trim()) {
-      setErrorMessage('Please enter your registered School Email or User ID.');
+    const cleanInput = recoveryEmail.trim();
+    if (!cleanInput) {
+      setErrorMessage('Please enter your registered School Email or Mobile Number.');
       return;
     }
 
     setIsSubmitting(true);
-    setTimeout(() => {
+    try {
+      await sendOtpApi(cleanInput);
       setIsSubmitting(false);
-      setSuccessMessage(
-        `A password reset link has been dispatched to "${recoveryEmail.trim()}". Please check your inbox and follow the instructions.`
-      );
-    }, 700);
+      setInfoMessage(`Verification code sent to ${cleanInput}. Please enter the OTP below.`);
+      setStep('verify_reset');
+    } catch (err) {
+      setIsSubmitting(false);
+      // Even if API is in test mode, allow transitioning to step 2 for user convenience
+      setInfoMessage(`If an account matches "${cleanInput}", an OTP code has been dispatched.`);
+      setStep('verify_reset');
+    }
+  };
+
+  const handleResetPassword = async () => {
+    Keyboard.dismiss();
+    setErrorMessage(null);
+
+    if (!otpCode.trim()) {
+      setErrorMessage('Please enter the verification OTP code.');
+      return;
+    }
+
+    if (!newPassword || newPassword.length < 6) {
+      setErrorMessage('Password must be at least 6 characters long.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await resetPasswordWithOtpApi(recoveryEmail.trim(), otpCode.trim(), newPassword);
+      setIsSubmitting(false);
+      setStep('completed');
+    } catch (err) {
+      setIsSubmitting(false);
+      setErrorMessage(err.message || 'Failed to reset password. Please check OTP code.');
+    }
   };
 
   const handleClose = () => {
     setRecoveryEmail('');
-    setSuccessMessage(null);
+    setOtpCode('');
+    setNewPassword('');
+    setInfoMessage(null);
     setErrorMessage(null);
+    setStep('request_otp');
     onClose();
   };
 
@@ -72,7 +109,7 @@ export const ForgotPasswordModal = ({ visible, onClose }) => {
           <View style={styles.headerRow}>
             <View style={styles.titleCol}>
               <AppText variant="h3" style={{ color: colors.text.primary, fontWeight: '800' }}>
-                Reset Password
+                {step === 'completed' ? 'Password Updated' : 'Reset Password'}
               </AppText>
               <AppText variant="caption" style={{ color: colors.text.secondary, marginTop: 2 }}>
                 PupilScholar Security Portal
@@ -93,12 +130,21 @@ export const ForgotPasswordModal = ({ visible, onClose }) => {
             />
           )}
 
-          {successMessage ? (
+          {infoMessage && step !== 'completed' && (
+            <AlertBanner
+              type="info"
+              message={infoMessage}
+              onDismiss={() => setInfoMessage(null)}
+              style={styles.bannerSpacing}
+            />
+          )}
+
+          {step === 'completed' ? (
             <View style={styles.successBox}>
               <AlertBanner
                 type="success"
-                title="Link Dispatched"
-                message={successMessage}
+                title="Success"
+                message="Your password has been securely reset. You can now log in with your new password."
                 style={styles.bannerSpacing}
               />
               <Button
@@ -109,17 +155,63 @@ export const ForgotPasswordModal = ({ visible, onClose }) => {
                 style={{ marginTop: SPACING.md }}
               />
             </View>
+          ) : step === 'verify_reset' ? (
+            <View>
+              <Input
+                label="Enter Verification OTP"
+                placeholder="e.g. 123456"
+                value={otpCode}
+                onChangeText={(text) => {
+                  setOtpCode(text);
+                  if (errorMessage) setErrorMessage(null);
+                }}
+                keyboardType="number-pad"
+                leftIcon={<AppText style={{ fontSize: 16 }}>🔢</AppText>}
+                required
+              />
+
+              <Input
+                label="New Password"
+                placeholder="At least 6 characters"
+                value={newPassword}
+                onChangeText={(text) => {
+                  setNewPassword(text);
+                  if (errorMessage) setErrorMessage(null);
+                }}
+                isPassword
+                leftIcon={<AppText style={{ fontSize: 16 }}>🔒</AppText>}
+                required
+              />
+
+              <Button
+                title="Set New Password"
+                onPress={handleResetPassword}
+                loading={isSubmitting}
+                variant="primary"
+                size="lg"
+                style={{ marginTop: SPACING.sm }}
+              />
+
+              <TouchableOpacity
+                onPress={() => setStep('request_otp')}
+                style={{ marginTop: 12, alignItems: 'center' }}
+              >
+                <AppText variant="caption" style={{ color: '#3B82F6', fontWeight: '600' }}>
+                  ← Change Email or Mobile
+                </AppText>
+              </TouchableOpacity>
+            </View>
           ) : (
             <View>
               <AppText
                 variant="caption"
                 style={{ color: colors.text.secondary, marginBottom: SPACING.md }}
               >
-                Enter your registered school email address or student/employee ID below. We will send a secure one-time reset link.
+                Enter your registered school email address or mobile number below. We will send a secure one-time OTP code.
               </AppText>
 
               <Input
-                label="Registered Email or ID"
+                label="Registered Email or Mobile"
                 placeholder="e.g. teacher@school.com"
                 value={recoveryEmail}
                 onChangeText={(text) => {
@@ -127,14 +219,14 @@ export const ForgotPasswordModal = ({ visible, onClose }) => {
                   if (errorMessage) setErrorMessage(null);
                 }}
                 autoCapitalize="none"
-                keyboardType="email-address"
+                keyboardType="default"
                 leftIcon={<AppText style={{ fontSize: 16 }}>✉️</AppText>}
                 required
               />
 
               <Button
-                title="Send Reset Link"
-                onPress={handleResetSubmit}
+                title="Send Verification Code"
+                onPress={handleSendOtp}
                 loading={isSubmitting}
                 variant="primary"
                 size="lg"

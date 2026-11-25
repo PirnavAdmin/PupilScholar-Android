@@ -37,6 +37,8 @@ export const LoginScreen = () => {
   const [showForgotModal, setShowForgotModal] = useState(false);
   const [formError, setFormError] = useState(null);
 
+  const passwordInputRef = useRef(null);
+
   // Floating animation for the logo
   const floatAnim = useRef(new Animated.Value(0)).current;
 
@@ -90,6 +92,7 @@ export const LoginScreen = () => {
   const handleIdentifierChange = (text) => {
     setIdentifier(text);
     if (formError) setFormError(null);
+    if (authError) clearError();
     if (rememberMe) {
       saveRememberedCredentials(text, password);
     }
@@ -98,33 +101,41 @@ export const LoginScreen = () => {
   const handlePasswordChange = (text) => {
     setPassword(text);
     if (formError) setFormError(null);
+    if (authError) clearError();
     if (rememberMe) {
       saveRememberedCredentials(identifier, text);
     }
   };
 
-  // 4. Handle sign in
+  // 4. Handle sign in against live backend API
   const handleLogin = async () => {
     Keyboard.dismiss();
     setFormError(null);
+    clearError();
 
-    if (!identifier.trim()) {
-      setFormError('Please enter your School Email or Username.');
+    const cleanId = (identifier || '').trim();
+    const cleanPassword = password || '';
+
+    if (!cleanId) {
+      setFormError('Please enter your School Email or Mobile Number.');
       return;
     }
 
-    if (!password) {
+    if (!cleanPassword) {
       setFormError('Please enter your Password.');
       return;
     }
 
     if (rememberMe) {
-      await saveRememberedCredentials(identifier, password);
+      await saveRememberedCredentials(cleanId, cleanPassword);
     } else {
       await clearRememberedCredentials();
     }
 
-    await login(identifier, password, 'all');
+    const result = await login(cleanId, cleanPassword);
+    if (result && !result.success && result.error) {
+      setFormError(result.error);
+    }
   };
 
   const logoTranslateY = floatAnim.interpolate({
@@ -265,25 +276,31 @@ export const LoginScreen = () => {
                   />
                 )}
 
-                {/* Input 1: Institutional ID or Email */}
+                {/* Input 1: Institutional ID, Email, or Mobile Number */}
                 <Input
                   label="Enter the Email or Mobile Number"
-                  placeholder="e.g. teacher@school.com"
+                  placeholder="e.g. teacher@school.com or +1234567890"
                   value={identifier}
                   onChangeText={handleIdentifierChange}
                   autoCapitalize="none"
-                  keyboardType="email-address"
+                  keyboardType="default"
+                  returnKeyType="next"
+                  blurOnSubmit={false}
+                  onSubmitEditing={() => passwordInputRef.current?.focus()}
                   leftIcon={<AppText style={styles.inputIcon}>👤</AppText>}
                   required
                 />
 
                 {/* Input 2: Password */}
                 <Input
+                  ref={passwordInputRef}
                   label="Password"
                   placeholder="••••••••"
                   value={password}
                   onChangeText={handlePasswordChange}
                   isPassword
+                  returnKeyType="go"
+                  onSubmitEditing={handleLogin}
                   leftIcon={<AppText style={styles.inputIcon}>🔒</AppText>}
                   required
                 />
@@ -338,9 +355,10 @@ export const LoginScreen = () => {
 
                 {/* Sign In CTA Button */}
                 <Button
-                  title="Sign In"
+                  title={isLoading ? 'Signing In...' : 'Sign In'}
                   onPress={handleLogin}
                   loading={isLoading}
+                  disabled={isLoading}
                   variant="primary"
                   size="lg"
                   style={styles.signInButton}
