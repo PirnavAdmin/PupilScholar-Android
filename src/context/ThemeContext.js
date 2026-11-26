@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
-import { useColorScheme } from 'react-native';
+import { useColorScheme, Appearance } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const THEME_STORAGE_KEY = '@pupil_theme_mode';
@@ -89,10 +89,24 @@ export const LIGHT_THEME = {
 const ThemeContext = createContext(null);
 
 export const ThemeProvider = ({ children }) => {
-  const systemScheme = useColorScheme(); // 'light' | 'dark'
+  const hookScheme = useColorScheme(); // 'light' | 'dark' | null
+  const [currentSystemScheme, setCurrentSystemScheme] = useState(
+    hookScheme || Appearance.getColorScheme() || 'dark'
+  );
   const [themeMode, setThemeModeState] = useState(THEME_MODES.DARK);
 
+  // Subscribe to hardware/OS system theme changes
   useEffect(() => {
+    const subscription = Appearance.addChangeListener(({ colorScheme }) => {
+      if (colorScheme) {
+        setCurrentSystemScheme(colorScheme);
+      }
+    });
+
+    if (hookScheme) {
+      setCurrentSystemScheme(hookScheme);
+    }
+
     // Load persisted theme preference
     const loadTheme = async () => {
       try {
@@ -100,35 +114,49 @@ export const ThemeProvider = ({ children }) => {
         if (saved && Object.values(THEME_MODES).includes(saved)) {
           setThemeModeState(saved);
         }
-      } catch (e) {
+      } catch {
         // Fallback to dark
       }
     };
     loadTheme();
-  }, []);
+
+    return () => {
+      if (subscription && typeof subscription.remove === 'function') {
+        subscription.remove();
+      }
+    };
+  }, [hookScheme]);
 
   const setThemeMode = async (mode) => {
     setThemeModeState(mode);
     try {
       await AsyncStorage.setItem(THEME_STORAGE_KEY, mode);
-    } catch (e) {
+    } catch {
       // Ignored
     }
   };
 
   const toggleTheme = () => {
-    const isCurrentlyDark =
+    const activeIsDark =
       themeMode === THEME_MODES.DARK ||
-      (themeMode === THEME_MODES.SYSTEM && systemScheme === 'dark');
-    setThemeMode(isCurrentlyDark ? THEME_MODES.LIGHT : THEME_MODES.DARK);
+      (themeMode === THEME_MODES.SYSTEM && currentSystemScheme === 'dark');
+    setThemeMode(activeIsDark ? THEME_MODES.LIGHT : THEME_MODES.DARK);
   };
 
   const resolvedTheme = useMemo(() => {
-    const isDark =
-      themeMode === THEME_MODES.DARK ||
-      (themeMode === THEME_MODES.SYSTEM && systemScheme !== 'light');
-    return isDark ? DARK_THEME : LIGHT_THEME;
-  }, [themeMode, systemScheme]);
+    let isDarkTheme = true;
+
+    if (themeMode === THEME_MODES.DARK) {
+      isDarkTheme = true;
+    } else if (themeMode === THEME_MODES.LIGHT) {
+      isDarkTheme = false;
+    } else if (themeMode === THEME_MODES.SYSTEM) {
+      const activeSys = currentSystemScheme || Appearance.getColorScheme() || 'dark';
+      isDarkTheme = activeSys === 'dark';
+    }
+
+    return isDarkTheme ? DARK_THEME : LIGHT_THEME;
+  }, [themeMode, currentSystemScheme]);
 
   const value = useMemo(
     () => ({
@@ -137,8 +165,9 @@ export const ThemeProvider = ({ children }) => {
       toggleTheme,
       isDark: resolvedTheme.isDark,
       colors: resolvedTheme,
+      systemScheme: currentSystemScheme,
     }),
-    [themeMode, resolvedTheme]
+    [themeMode, resolvedTheme, currentSystemScheme]
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;

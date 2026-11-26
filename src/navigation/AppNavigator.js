@@ -21,7 +21,13 @@ export const AppNavigator = () => {
     return <SplashScreen onFinish={() => setShowSplash(false)} />;
   }
 
-  // 2. Authentication Loading / Transition State
+  // 2. Not authenticated -> Single Unified Login Page
+  // Keeps user on Login screen with in-button loading indicator only
+  if (!isAuthenticated || !user) {
+    return <LoginScreen />;
+  }
+
+  // 3. Authenticated Role Transition Loading State (only after user is logged in)
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
@@ -33,11 +39,6 @@ export const AppNavigator = () => {
         />
       </View>
     );
-  }
-
-  // 3. Not authenticated -> Single Unified Login Page
-  if (!isAuthenticated || !user) {
-    return <LoginScreen />;
   }
 
   // 4. Role-based Dashboards

@@ -50,7 +50,7 @@ export const StudentDashboardScreen = () => {
       case 'schedule':
         return { title: 'My Timetable', subtitle: 'Daily Schedule & Period Routine' };
       case 'notices':
-        return { title: 'Notice Board', subtitle: 'School Circulars & Event Updates' };
+        return { title: 'Notifications', subtitle: 'School Updates & Announcements' };
       case 'profile':
         return { title: 'Student Profile', subtitle: user?.email || 'Grade 10-A' };
       default:
@@ -424,7 +424,7 @@ export const StudentDashboardScreen = () => {
             {/* School Notices Snippet */}
             <View style={styles.sectionHeader}>
               <AppText variant="h3" style={[styles.sectionTitle, { color: colors.text.primary }]}>
-                Campus Notices
+                School Notifications
               </AppText>
               <TouchableOpacity onPress={() => setActiveTab('notices')} activeOpacity={0.7}>
                 <AppText variant="caption" style={{ color: '#2563EB', fontWeight: '700' }}>

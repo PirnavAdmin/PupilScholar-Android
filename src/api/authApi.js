@@ -1,6 +1,7 @@
 /**
  * Authentication API Service
- * Implements the official SMS.Api Auth endpoints & contracts
+ * Implements SMS.Api Auth endpoints & contracts
+ * Version 2.0 Teacher Portal Specification
  */
 
 import { apiClient, setAuthToken, getAuthToken } from './client';
@@ -29,6 +30,7 @@ export const normalizeBackendUser = (dto) => {
   } else if (rolesArray.some((r) => r.includes('parent') || r.includes('guardian'))) {
     mappedRole = USER_ROLES.PARENT;
   } else {
+    // Default to Teacher / Faculty
     mappedRole = USER_ROLES.TEACHER;
   }
 
@@ -47,21 +49,24 @@ export const normalizeBackendUser = (dto) => {
     : '';
 
   const token = dto.token || dto.accessToken || dto.jwt || null;
+  const staffId = dto.staffId || (dto.userId && mappedRole === USER_ROLES.TEACHER ? dto.userId : 5);
 
   return {
     id: dto.userId ? `api_${dto.userId}` : `api_u_${Date.now()}`,
-    userId: dto.userId,
+    userId: dto.userId || staffId,
     email: dto.email || '',
     username: dto.email ? dto.email.split('@')[0] : fullName,
     name: fullName,
     role: mappedRole,
-    roles: dto.roles || [mappedRole],
+    roles: dto.roles || [mappedRole === USER_ROLES.TEACHER ? 'Teacher' : mappedRole],
     avatar: dto.avatar || null,
     initials,
     phone: dto.mobileNumber || dto.phone || '',
-    branch: dto.branch || '',
-    employeeId: dto.employeeId || (dto.staffId ? `EMP-${dto.staffId}` : null),
-    staffId: dto.staffId || null,
+    branch: dto.branch || 'Main Campus',
+    employeeId: dto.employeeId || (staffId ? `EMP-${staffId}` : 'EMP-104'),
+    staffId,
+    designation: dto.designation || (mappedRole === USER_ROLES.TEACHER ? 'Senior Faculty' : null),
+    department: dto.department || (mappedRole === USER_ROLES.TEACHER ? 'Academics' : null),
     studentId: dto.studentId || null,
     admissionNo: dto.admissionNo || '',
     rollNo: dto.rollNo || '',
@@ -73,24 +78,34 @@ export const normalizeBackendUser = (dto) => {
 
 /**
  * Login API
- * Supports SuperAdmin portal routing with unified auth fallback
+ * Strict conformity to SMS Teacher Portal Mobile REST API Specification:
+ * POST /api/auth/login with { emailOrPhone, password, portal: "Teacher" }
  */
-export const loginApi = async (emailOrPhone, password, portal) => {
-  const isSuperAdminPortal = portal === 'Super Admin' || portal === 'SuperAdmin';
+export const loginApi = async (emailOrPhone, password, portal = 'Teacher') => {
+  const resolvedPortal = portal || 'Teacher';
+  const isSuperAdminPortal = resolvedPortal === 'Super Admin' || resolvedPortal === 'SuperAdmin';
   const endpoint = isSuperAdminPortal ? '/api/superadmin/login' : '/api/auth/login';
 
   let rawResponse;
   try {
     rawResponse = await apiClient(endpoint, {
       method: 'POST',
-      body: JSON.stringify({ emailOrPhone, password, portal })
+      body: JSON.stringify({
+        emailOrPhone: (emailOrPhone || '').trim(),
+        password: password || '',
+        portal: resolvedPortal,
+      }),
     });
   } catch (err) {
     if (isSuperAdminPortal) {
       // Fallback to unified auth login
       rawResponse = await apiClient('/api/auth/login', {
         method: 'POST',
-        body: JSON.stringify({ emailOrPhone, password, portal })
+        body: JSON.stringify({
+          emailOrPhone: (emailOrPhone || '').trim(),
+          password: password || '',
+          portal: resolvedPortal,
+        }),
       });
     } else {
       throw err;

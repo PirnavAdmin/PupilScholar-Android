@@ -12,7 +12,7 @@ import { COLORS } from '../../constants/colors';
 import { useTheme } from '../../context/ThemeContext';
 
 /**
- * iOS-Style Glass Finish Taskbar - Adaptive Dark & Light Modes
+ * iOS-Style Glass Taskbar - 5 Clean Adaptive Options
  */
 export const GlassTaskbar = ({
   activeTab = 'dashboard',
@@ -22,17 +22,35 @@ export const GlassTaskbar = ({
   const insets = useSafeAreaInsets();
   const { isDark, colors } = useTheme();
 
-  const roleColor = role && COLORS.roles[role] ? COLORS.roles[role].primary : '#2563EB';
+  const roleColor = role && COLORS.roles[role] ? COLORS.roles[role].primary : '#7C3AED';
 
+  // 5 Balanced Tab Items for Teacher / Student / Parent
   const tabs = [
-    { id: 'dashboard', label: 'Home', icon: '🏠' },
+    {
+      id: 'dashboard',
+      label: 'Home',
+      icon: '🏠',
+    },
     {
       id: 'schedule',
-      label: role === 'teacher' ? 'Classes' : role === 'student' ? 'Timetable' : 'Children',
-      icon: role === 'teacher' ? '📅' : role === 'student' ? '🗓️' : '👨‍👩‍👧',
+      label: role === 'teacher' ? 'Timetable' : role === 'student' ? 'Classes' : 'Children',
+      icon: '📅',
     },
-    { id: 'notices', label: 'Notices', icon: '🔔' },
-    { id: 'profile', label: 'Profile', icon: '👤' },
+    {
+      id: 'attendance',
+      label: 'Attendance',
+      icon: '📋',
+    },
+    {
+      id: 'notices',
+      label: 'Notifications',
+      icon: '🔔',
+    },
+    {
+      id: 'profile',
+      label: 'Profile',
+      icon: '👤',
+    },
   ];
 
   return (
@@ -40,7 +58,7 @@ export const GlassTaskbar = ({
       pointerEvents="box-none"
       style={[
         styles.wrapper,
-        { bottom: Math.max(insets.bottom, 12) + 4 },
+        { bottom: Math.max(insets.bottom, 10) + 4 },
       ]}
     >
       <View
@@ -48,7 +66,7 @@ export const GlassTaskbar = ({
           styles.floatingContainer,
           {
             borderColor: colors.taskbar.border,
-            backgroundColor: isDark ? 'transparent' : 'rgba(255, 255, 255, 0.7)',
+            backgroundColor: isDark ? 'rgba(15, 23, 42, 0.75)' : 'rgba(255, 255, 255, 0.82)',
           },
         ]}
       >
@@ -81,7 +99,7 @@ export const GlassTaskbar = ({
                     ],
                   ]}
                 >
-                  <AppText style={[styles.tabIcon, isActive && { transform: [{ scale: 1.1 }] }]}>
+                  <AppText style={[styles.tabIcon, isActive && styles.activeTabIcon]}>
                     {tab.icon}
                   </AppText>
                   <AppText
@@ -89,11 +107,15 @@ export const GlassTaskbar = ({
                     style={[
                       styles.tabLabel,
                       { color: isActive ? roleColor : colors.text.secondary },
-                      isActive && { fontWeight: '800' },
+                      isActive && styles.activeTabLabel,
                     ]}
+                    numberOfLines={1}
                   >
                     {tab.label}
                   </AppText>
+                  {isActive && (
+                    <View style={[styles.activeIndicatorDot, { backgroundColor: roleColor }]} />
+                  )}
                 </TouchableOpacity>
               );
             })}
@@ -107,26 +129,26 @@ export const GlassTaskbar = ({
 const styles = StyleSheet.create({
   wrapper: {
     position: 'absolute',
-    left: 16,
-    right: 16,
+    left: 12,
+    right: 12,
     zIndex: 999,
     alignItems: 'center',
   },
   floatingContainer: {
     width: '100%',
-    maxWidth: 420,
-    borderRadius: 30,
+    maxWidth: 440,
+    borderRadius: 26,
     overflow: 'hidden',
     borderWidth: 1.2,
     ...Platform.select({
       ios: {
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.25,
-        shadowRadius: 20,
+        shadowOpacity: 0.22,
+        shadowRadius: 18,
       },
       android: {
-        elevation: 12,
+        elevation: 10,
       },
       default: {
         boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.2)',
@@ -135,7 +157,7 @@ const styles = StyleSheet.create({
   },
   blurView: {
     width: '100%',
-    borderRadius: 30,
+    borderRadius: 26,
     overflow: 'hidden',
   },
   glassTintOverlay: {
@@ -144,26 +166,40 @@ const styles = StyleSheet.create({
   tabBarContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-around',
-    paddingVertical: 8,
-    paddingHorizontal: 8,
+    justifyContent: 'space-between',
+    paddingVertical: 6,
+    paddingHorizontal: 4,
   },
   tabItem: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 6,
-    paddingHorizontal: 4,
-    borderRadius: 20,
+    paddingVertical: 5,
+    paddingHorizontal: 2,
+    borderRadius: 16,
+    minHeight: 48,
   },
   activeTabItem: {},
   tabIcon: {
     fontSize: 18,
-    marginBottom: 3,
+    marginBottom: 2,
+  },
+  activeTabIcon: {
+    transform: [{ scale: 1.15 }],
   },
   tabLabel: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '600',
+    letterSpacing: -0.2,
+  },
+  activeTabLabel: {
+    fontWeight: '800',
+  },
+  activeIndicatorDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    marginTop: 2,
   },
 });
 

@@ -69,7 +69,7 @@ export const ParentDashboardScreen = () => {
       case 'schedule':
         return { title: 'Children & Wards', subtitle: 'Academic Profiles & Student Welfare' };
       case 'notices':
-        return { title: 'School Notices', subtitle: 'Circulars & Parent Updates' };
+        return { title: 'Notifications', subtitle: 'Circulars & Parent Updates' };
       case 'profile':
         return { title: 'Guardian Profile', subtitle: user?.email || 'David Rivera' };
       default:
@@ -407,7 +407,7 @@ export const ParentDashboardScreen = () => {
               </AppText>
               <TouchableOpacity onPress={() => setActiveTab('notices')} activeOpacity={0.7}>
                 <AppText variant="caption" style={{ color: '#059669', fontWeight: '700' }}>
-                  See All Notices →
+                  See All Notifications →
                 </AppText>
               </TouchableOpacity>
             </View>

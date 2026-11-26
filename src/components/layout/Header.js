@@ -70,7 +70,7 @@ export const Header = ({
               accessibilityLabel="Go Back"
             >
               <AppText style={[styles.backArrow, { color: colors.header.title }]}>
-                ←
+                ‹
               </AppText>
             </TouchableOpacity>
           ) : showMenu && onMenuPress ? (
@@ -213,17 +213,19 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   iconButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     borderWidth: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 10,
+    marginRight: 12,
   },
   backArrow: {
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 26,
+    lineHeight: 28,
+    fontWeight: '300',
+    marginTop: -2,
   },
   hamburgerIconBox: {
     width: 18,

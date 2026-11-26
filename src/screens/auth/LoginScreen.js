@@ -36,6 +36,7 @@ export const LoginScreen = () => {
   const [rememberMe, setRememberMe] = useState(false);
   const [showForgotModal, setShowForgotModal] = useState(false);
   const [formError, setFormError] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const passwordInputRef = useRef(null);
 
@@ -132,9 +133,14 @@ export const LoginScreen = () => {
       await clearRememberedCredentials();
     }
 
-    const result = await login(cleanId, cleanPassword);
-    if (result && !result.success && result.error) {
-      setFormError(result.error);
+    setIsSubmitting(true);
+    try {
+      const result = await login(cleanId, cleanPassword);
+      if (result && !result.success && result.error) {
+        setFormError(result.error);
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -353,12 +359,12 @@ export const LoginScreen = () => {
                   </TouchableOpacity>
                 </View>
 
-                {/* Sign In CTA Button */}
+                {/* Sign In CTA Button with In-Button Loading Spinner */}
                 <Button
-                  title={isLoading ? 'Signing In...' : 'Sign In'}
+                  title={isSubmitting || isLoading ? 'Signing In...' : 'Sign In'}
                   onPress={handleLogin}
-                  loading={isLoading}
-                  disabled={isLoading}
+                  loading={isSubmitting || isLoading}
+                  disabled={isSubmitting || isLoading}
                   variant="primary"
                   size="lg"
                   style={styles.signInButton}

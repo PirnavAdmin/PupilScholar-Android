@@ -89,10 +89,10 @@ export const NoticesTabContent = ({ role = 'teacher' }) => {
       {/* Header Info */}
       <View style={styles.noticeListHeader}>
         <AppText variant="h3" style={{ color: colors.text.primary, fontWeight: '700' }}>
-          Official Circulars
+          Official Notifications
         </AppText>
         <Badge
-          label={`${filteredNotices.length} Notices`}
+          label={`${filteredNotices.length} Notifications`}
           variant="neutral"
           size="sm"
         />

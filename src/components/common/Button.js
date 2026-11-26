@@ -61,13 +61,13 @@ export const Button = ({
     >
       {loading ? (
         <View style={styles.contentRow}>
-          <ActivityIndicator size="small" color={indicatorColor} />
+          <ActivityIndicator size="small" color={indicatorColor || '#FFFFFF'} />
           {title ? (
             <AppText
               variant={sizeStyles.textVariant}
               style={[styles.textWithLoader, { color: textColor }, textStyle]}
             >
-              Please wait...
+              {title}
             </AppText>
           ) : null}
         </View>

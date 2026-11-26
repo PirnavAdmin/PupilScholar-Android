@@ -127,7 +127,12 @@ export const apiFetch = async (endpoint, options = {}) => {
     }
 
     // Trigger auto-logout if token is expired on protected routes
-    if (response.status === 401 && activeToken && !endpoint.includes('/login')) {
+    if (
+      response.status === 401 &&
+      activeToken &&
+      !String(activeToken).startsWith('mock_') &&
+      !endpoint.includes('/login')
+    ) {
       if (typeof unauthorizedHandler === 'function') {
         unauthorizedHandler();
       }

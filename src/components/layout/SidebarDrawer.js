@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   StyleSheet,
@@ -8,8 +8,8 @@ import {
   Dimensions,
   Platform,
   Alert,
+  ScrollView,
 } from 'react-native';
-import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '../typography/AppText';
 import { Avatar } from '../common/Avatar';
@@ -20,13 +20,14 @@ import { COLORS } from '../../constants/colors';
 import { SPACING, RADIUS } from '../../constants/spacing';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const SIDEBAR_WIDTH = Math.min(SCREEN_WIDTH * 0.78, 320);
+const SIDEBAR_WIDTH = Math.min(SCREEN_WIDTH * 0.82, 330);
 
 export const SidebarDrawer = ({
   visible = false,
   onClose,
   activeTab = 'dashboard',
   onSelectTab,
+  onOpenWorkflow,
 }) => {
   const insets = useSafeAreaInsets();
   const { user, role, logout } = useAuth();
@@ -34,18 +35,20 @@ export const SidebarDrawer = ({
 
   const slideAnim = useRef(new Animated.Value(-SIDEBAR_WIDTH)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const [isRendered, setIsRendered] = useState(visible);
 
   useEffect(() => {
     if (visible) {
+      setIsRendered(true);
       Animated.parallel([
         Animated.timing(slideAnim, {
           toValue: 0,
-          duration: 260,
+          duration: 250,
           useNativeDriver: true,
         }),
         Animated.timing(fadeAnim, {
           toValue: 1,
-          duration: 260,
+          duration: 250,
           useNativeDriver: true,
         }),
       ]).start();
@@ -53,34 +56,36 @@ export const SidebarDrawer = ({
       Animated.parallel([
         Animated.timing(slideAnim, {
           toValue: -SIDEBAR_WIDTH,
-          duration: 220,
+          duration: 200,
           useNativeDriver: true,
         }),
         Animated.timing(fadeAnim, {
           toValue: 0,
-          duration: 220,
+          duration: 200,
           useNativeDriver: true,
         }),
-      ]).start();
+      ]).start(() => {
+        setIsRendered(false);
+      });
     }
   }, [visible]);
 
-  const handleMenuClick = (tabId) => {
-    onClose && onClose();
+  const handleTabClick = (tabId) => {
+    if (onClose) onClose();
     if (onSelectTab && tabId) {
-      setTimeout(() => onSelectTab(tabId), 150);
+      setTimeout(() => onSelectTab(tabId), 100);
     }
   };
 
-  const handleInfoAction = (title, message) => {
-    onClose && onClose();
-    setTimeout(() => {
-      Alert.alert(title, message);
-    }, 200);
+  const handleWorkflowClick = (workflowName) => {
+    if (onClose) onClose();
+    if (onOpenWorkflow && workflowName) {
+      setTimeout(() => onOpenWorkflow(workflowName), 150);
+    }
   };
 
   const handleLogout = () => {
-    onClose && onClose();
+    if (onClose) onClose();
     setTimeout(() => {
       Alert.alert(
         'Log Out',
@@ -94,43 +99,24 @@ export const SidebarDrawer = ({
           },
         ]
       );
-    }, 200);
+    }, 150);
   };
 
-  const roleColor = role && COLORS.roles[role] ? COLORS.roles[role].primary : '#2563EB';
+  const roleColor = role && COLORS.roles[role] ? COLORS.roles[role].primary : '#7C3AED';
 
-  const menuItems = [
-    { id: 'dashboard', label: 'Home Dashboard', icon: '🏠', isTab: true },
-    {
-      id: 'schedule',
-      label: role === 'teacher' ? 'Class Schedule' : role === 'student' ? 'My Timetable' : 'Children Profiles',
-      icon: role === 'teacher' ? '📅' : role === 'student' ? '🗓️' : '👨‍👩‍👧',
-      isTab: true,
-    },
-    { id: 'notices', label: 'School Notices', icon: '🔔', isTab: true },
-    { id: 'profile', label: 'Account & Settings', icon: '👤', isTab: true },
-    {
-      id: 'messages',
-      label: 'Campus Messages',
-      icon: '💬',
-      badge: '2 New',
-      onPress: () => handleInfoAction('Campus Messages', 'Direct messages with faculty and administration are synced.'),
-    },
-    {
-      id: 'library',
-      label: 'Digital Library',
-      icon: '📚',
-      onPress: () => handleInfoAction('Digital Library', 'Accessing 12,000+ textbooks, journals, and exam archives.'),
-    },
-    {
-      id: 'support',
-      label: 'Help & Helpdesk',
-      icon: '❓',
-      onPress: () => handleInfoAction('Help & Support', 'PupilScholar 24/7 IT Helpdesk: support@pupilscholar.edu'),
-    },
+  const teacherNavItems = [
+    { id: 'dashboard', label: 'Home Dashboard', icon: '🏠', type: 'tab' },
+    { id: 'attendance', label: 'Student Attendance', icon: '📋', type: 'workflow' },
+    { id: 'schedule', label: 'Class Timetable', icon: '📅', type: 'tab' },
+    { id: 'marks', label: 'Marks Entry', icon: '📊', type: 'workflow' },
+    { id: 'students', label: 'Assigned Students', icon: '👥', type: 'workflow' },
+    { id: 'homework', label: 'Homework & Tasks', icon: '✏️', type: 'workflow' },
+    { id: 'chat', label: 'Parent Messages', icon: '💬', type: 'workflow' },
+    { id: 'notices', label: 'Notifications', icon: '🔔', type: 'tab' },
+    { id: 'profile', label: 'Faculty Account', icon: '👤', type: 'tab' },
   ];
 
-  if (!visible && slideAnim._value === -SIDEBAR_WIDTH) {
+  if (!isRendered && !visible) {
     return null;
   }
 
@@ -143,7 +129,7 @@ export const SidebarDrawer = ({
             styles.backdrop,
             {
               opacity: fadeAnim,
-              backgroundColor: isDark ? 'rgba(0, 0, 0, 0.7)' : 'rgba(15, 23, 42, 0.45)',
+              backgroundColor: isDark ? 'rgba(0, 0, 0, 0.72)' : 'rgba(15, 23, 42, 0.45)',
             },
           ]}
         />
@@ -166,7 +152,7 @@ export const SidebarDrawer = ({
         {/* Drawer Header: Brand + Close button */}
         <View style={styles.drawerHeader}>
           <View style={styles.brandRow}>
-            <View style={[styles.brandIconBox, { backgroundColor: isDark ? 'rgba(59, 130, 246, 0.2)' : '#EFF6FF' }]}>
+            <View style={[styles.brandIconBox, { backgroundColor: isDark ? 'rgba(124, 58, 237, 0.2)' : '#F5F3FF' }]}>
               <AppText style={styles.brandEmoji}>🎓</AppText>
             </View>
             <View>
@@ -174,7 +160,7 @@ export const SidebarDrawer = ({
                 PupilScholar
               </AppText>
               <AppText variant="caption" style={{ color: colors.text.muted, fontSize: 11 }}>
-                Unified School Portal
+                Teacher SIS Console
               </AppText>
             </View>
           </View>
@@ -191,7 +177,7 @@ export const SidebarDrawer = ({
 
         {/* User Profile Mini Banner */}
         <TouchableOpacity
-          onPress={() => handleMenuClick('profile')}
+          onPress={() => handleTabClick('profile')}
           activeOpacity={0.8}
           style={[
             styles.userCard,
@@ -203,44 +189,57 @@ export const SidebarDrawer = ({
         >
           <Avatar
             source={user?.avatar}
-            name={user?.name || 'User'}
+            name={user?.name || 'Faculty Member'}
             size="md"
-            role={role}
+            role="teacher"
             showOnline
           />
           <View style={styles.userCardInfo}>
             <View style={styles.userBadgeRow}>
-              <Badge label={(role || 'Member').toUpperCase()} variant={role || 'neutral'} size="sm" />
+              <Badge label="FACULTY" variant="teacher" size="sm" />
+              <AppText variant="caption" style={{ color: colors.text.muted, fontSize: 11 }}>
+                {user?.employeeId || 'EMP-104'}
+              </AppText>
             </View>
             <AppText variant="bodyBold" style={[styles.userName, { color: colors.text.primary }]} numberOfLines={1}>
-              {user?.name || 'User Profile'}
+              {user?.name || 'Faculty Member'}
             </AppText>
             <AppText variant="caption" style={{ color: colors.text.secondary, fontSize: 11 }} numberOfLines={1}>
-              {user?.email || 'user@school.com'}
+              {user?.email || 'teacher@school.com'}
             </AppText>
           </View>
         </TouchableOpacity>
 
         {/* Navigation Menu List */}
-        <View style={styles.menuContainer}>
+        <ScrollView
+          style={styles.menuContainer}
+          contentContainerStyle={styles.menuContent}
+          showsVerticalScrollIndicator={false}
+        >
           <AppText variant="caption" style={[styles.menuHeaderLabel, { color: colors.text.muted }]}>
-            MAIN NAVIGATION
+            ACADEMIC MODULES
           </AppText>
 
-          {menuItems.map((item) => {
-            const isActive = item.isTab && activeTab === item.id;
+          {teacherNavItems.map((item) => {
+            const isActive = item.type === 'tab' && activeTab === item.id;
             return (
               <TouchableOpacity
                 key={item.id}
-                onPress={() => (item.isTab ? handleMenuClick(item.id) : item.onPress && item.onPress())}
+                onPress={() => {
+                  if (item.type === 'tab') {
+                    handleTabClick(item.id);
+                  } else {
+                    handleWorkflowClick(item.id);
+                  }
+                }}
                 activeOpacity={0.7}
                 style={[
                   styles.menuItem,
                   isActive && [
                     styles.menuItemActive,
                     {
-                      backgroundColor: isDark ? 'rgba(59, 130, 246, 0.15)' : '#EFF6FF',
-                      borderColor: '#3B82F6',
+                      backgroundColor: isDark ? 'rgba(124, 58, 237, 0.15)' : '#F5F3FF',
+                      borderColor: '#7C3AED',
                     },
                   ],
                 ]}
@@ -260,16 +259,13 @@ export const SidebarDrawer = ({
                 >
                   {item.label}
                 </AppText>
-
-                {item.badge ? (
-                  <View style={styles.itemBadgePill}>
-                    <AppText style={styles.itemBadgeText}>{item.badge}</AppText>
-                  </View>
-                ) : null}
+                {item.type === 'workflow' && (
+                  <AppText style={{ fontSize: 12, color: colors.text.muted }}>→</AppText>
+                )}
               </TouchableOpacity>
             );
           })}
-        </View>
+        </ScrollView>
 
         {/* Footer: Quick Theme Mode Switcher + Log Out */}
         <View
@@ -279,15 +275,15 @@ export const SidebarDrawer = ({
           ]}
         >
           <View style={styles.themeToggleRow}>
-            <AppText variant="caption" style={{ color: colors.text.muted, fontSize: 11, fontWeight: '600' }}>
-              THEME:
+            <AppText variant="caption" style={{ color: colors.text.muted, fontSize: 11, fontWeight: '700' }}>
+              APPEARANCE:
             </AppText>
             <View style={styles.themeButtons}>
               <TouchableOpacity
                 onPress={() => setThemeMode(THEME_MODES.DARK)}
                 style={[
                   styles.themeMiniBtn,
-                  themeMode === THEME_MODES.DARK && { backgroundColor: '#3B82F6' },
+                  themeMode === THEME_MODES.DARK && { backgroundColor: '#7C3AED' },
                 ]}
               >
                 <AppText style={styles.themeMiniIcon}>🌙</AppText>
@@ -296,10 +292,19 @@ export const SidebarDrawer = ({
                 onPress={() => setThemeMode(THEME_MODES.LIGHT)}
                 style={[
                   styles.themeMiniBtn,
-                  themeMode === THEME_MODES.LIGHT && { backgroundColor: '#3B82F6' },
+                  themeMode === THEME_MODES.LIGHT && { backgroundColor: '#7C3AED' },
                 ]}
               >
                 <AppText style={styles.themeMiniIcon}>☀️</AppText>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setThemeMode(THEME_MODES.SYSTEM)}
+                style={[
+                  styles.themeMiniBtn,
+                  themeMode === THEME_MODES.SYSTEM && { backgroundColor: '#7C3AED' },
+                ]}
+              >
+                <AppText style={styles.themeMiniIcon}>📱</AppText>
               </TouchableOpacity>
             </View>
           </View>
@@ -393,7 +398,7 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: RADIUS.md,
     borderWidth: 1,
-    marginBottom: SPACING.lg,
+    marginBottom: SPACING.md,
     gap: 10,
   },
   userCardInfo: {
@@ -401,6 +406,8 @@ const styles = StyleSheet.create({
   },
   userBadgeRow: {
     flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     marginBottom: 2,
   },
   userName: {
@@ -408,6 +415,9 @@ const styles = StyleSheet.create({
   },
   menuContainer: {
     flex: 1,
+  },
+  menuContent: {
+    paddingBottom: 16,
   },
   menuHeaderLabel: {
     fontSize: 10,
@@ -436,17 +446,6 @@ const styles = StyleSheet.create({
   menuLabel: {
     fontSize: 14,
     flex: 1,
-  },
-  itemBadgePill: {
-    backgroundColor: 'rgba(239, 68, 68, 0.15)',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
-  itemBadgeText: {
-    color: '#EF4444',
-    fontSize: 10,
-    fontWeight: '700',
   },
   footerSection: {
     paddingTop: SPACING.md,

@@ -134,17 +134,19 @@ export const AuthProvider = ({ children }) => {
   /**
    * Single Unified Login Handler
    * Connects to live SMS.Api with strict 24-hour session expiration
+   * Defaults to 'Teacher' portal per Teacher Portal REST API Specification
    */
-  const login = async (identifier, password, portal = '') => {
+  const login = async (identifier, password, portal = 'Teacher') => {
     setIsLoading(true);
     setAuthError(null);
 
     const cleanId = (identifier || '').trim();
     const cleanPassword = password || '';
+    const resolvedPortal = portal || 'Teacher';
 
     try {
       // Step 1: Call live backend API
-      const apiResponse = await loginApi(cleanId, cleanPassword, portal);
+      const apiResponse = await loginApi(cleanId, cleanPassword, resolvedPortal);
 
       if (apiResponse && apiResponse.user) {
         const liveUser = apiResponse.user;

@@ -36,13 +36,15 @@ export const getApiBaseUrl = () => {
   const fromProcessEnv =
     (typeof process !== 'undefined' &&
       process.env &&
-      (process.env.EXPO_PUBLIC_VITE_API_URL ||
+      (process.env.EXPO_PUBLIC_API_URL ||
+        process.env.EXPO_PUBLIC_BACKEND_TARGET ||
+        process.env.EXPO_PUBLIC_VITE_API_URL ||
         process.env.EXPO_PUBLIC_VITE_BACKEND_TARGET ||
         process.env.VITE_API_URL ||
         process.env.VITE_BACKEND_TARGET)) ||
     null;
 
-  const resolved = fromEnvJson || fromProcessEnv || '';
+  const resolved = (fromEnvJson || fromProcessEnv || '').trim();
   return resolved ? resolved.replace(/\/+$/, '') : '';
 };
 

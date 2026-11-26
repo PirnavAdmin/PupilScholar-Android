@@ -1,23 +1,71 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   StyleSheet,
   TouchableOpacity,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { AppText } from '../../components/typography/AppText';
 import { Badge } from '../../components/common/Badge';
 import { useTheme } from '../../context/ThemeContext';
+import { useAuth } from '../../context/AuthContext';
 import { MOCK_STUDENT_DATA } from '../../data/mockSchoolData';
 import { SPACING, RADIUS } from '../../constants/spacing';
+import { fetchTimetableGridApi, fetchTimetableForClassSectionApi } from '../../api/timetableApi';
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
 
 export const StudentTimetableTab = () => {
+  const { user } = useAuth();
   const { isDark, colors } = useTheme();
   const [selectedDay, setSelectedDay] = useState('Tue');
+  const [dynamicSlots, setDynamicSlots] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const timetableList = selectedDay === 'Tue'
+  useEffect(() => {
+    let isMounted = true;
+    const loadClassTimetable = async () => {
+      setIsLoading(true);
+      try {
+        const classId = user?.classId || 1;
+        const section = user?.section || 'A';
+        const res = await fetchTimetableForClassSectionApi(classId, section, '2026-2027').catch(() =>
+          fetchTimetableGridApi(classId, section, '2026-2027')
+        );
+        const data = Array.isArray(res) ? res : (res?.data || []);
+        if (isMounted && data.length > 0) {
+          setDynamicSlots(data);
+        }
+      } catch {
+        // Fallback handled smoothly
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    };
+    loadClassTimetable();
+    return () => {
+      isMounted = false;
+    };
+  }, [user?.classId, user?.section]);
+
+  const timetableList = dynamicSlots.length > 0
+    ? dynamicSlots
+        .filter((slot) => {
+          const d = (slot.dayOfWeek || slot.day || '').toLowerCase();
+          return d.startsWith(selectedDay.toLowerCase());
+        })
+        .map((item, idx) => ({
+          id: item.id || `slot_${idx}`,
+          period: item.periodName || `Period ${item.periodNumber || idx + 1}`,
+          subject: item.subjectName || item.subject || 'Academic Period',
+          teacher: item.teacherName || item.teacher || 'Faculty',
+          room: item.roomNo || item.room || 'Room 101',
+          time: item.time || `${item.startTime || '08:30 AM'} - ${item.endTime || '09:20 AM'}`,
+          status: idx === 0 && selectedDay === 'Tue' ? 'in_progress' : 'upcoming',
+          active: idx === 0 && selectedDay === 'Tue',
+        }))
+    : selectedDay === 'Tue'
     ? MOCK_STUDENT_DATA.todayTimetable
     : (MOCK_STUDENT_DATA.weeklyTimetable[selectedDay] || []).map((item, idx) => ({
         id: item.id,

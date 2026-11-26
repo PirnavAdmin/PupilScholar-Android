@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   StyleSheet,
   TouchableOpacity,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { AppText } from '../../components/typography/AppText';
 import { Badge } from '../../components/common/Badge';
@@ -12,6 +13,7 @@ import { Button } from '../../components/common/Button';
 import { useTheme } from '../../context/ThemeContext';
 import { MOCK_PARENT_DATA } from '../../data/mockSchoolData';
 import { SPACING, RADIUS } from '../../constants/spacing';
+import { getParentTimetable } from '../../api/timetableApi';
 
 export const ParentChildrenTab = ({
   selectedChildId = 'child_01',
@@ -19,6 +21,29 @@ export const ParentChildrenTab = ({
 }) => {
   const { isDark, colors } = useTheme();
   const [activeChildId, setActiveChildId] = useState(selectedChildId);
+  const [childTimetable, setChildTimetable] = useState([]);
+  const [isLoadingTimetable, setIsLoadingTimetable] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchTimetable = async () => {
+      setIsLoadingTimetable(true);
+      try {
+        const studentId = activeChildId === 'child_01' ? 1239 : 1240;
+        const res = await getParentTimetable(studentId);
+        const data = Array.isArray(res) ? res : (res?.data || []);
+        if (isMounted) setChildTimetable(data);
+      } catch {
+        if (isMounted) setChildTimetable([]);
+      } finally {
+        if (isMounted) setIsLoadingTimetable(false);
+      }
+    };
+    fetchTimetable();
+    return () => {
+      isMounted = false;
+    };
+  }, [activeChildId]);
 
   const childrenList = [
     { id: 'child_01', name: 'Alex Rivera', grade: 'Grade 10-A', initials: 'AR' },
@@ -261,6 +286,58 @@ export const ParentChildrenTab = ({
             <AppText style={[styles.btnTextDark, { color: colors.text.primary }]}>Send Note</AppText>
           </TouchableOpacity>
         </View>
+      </View>
+
+      {/* Dynamic Student Timetable Card */}
+      <View
+        style={[
+          styles.glassCard,
+          { backgroundColor: colors.cardBg, borderColor: colors.cardBorder },
+        ]}
+      >
+        <View style={styles.cardHeaderRow}>
+          <View>
+            <AppText variant="h3" style={[styles.cardTitle, { color: colors.text.primary }]}>
+              Daily Class Schedule
+            </AppText>
+            <AppText variant="caption" style={{ color: colors.text.secondary }}>
+              {currentChild.name} • {currentChild.grade}
+            </AppText>
+          </View>
+          <Badge label="Timetable" variant="neutral" size="sm" />
+        </View>
+
+        {isLoadingTimetable ? (
+          <ActivityIndicator size="small" color="#F59E0B" style={{ marginVertical: 12 }} />
+        ) : childTimetable.length > 0 ? (
+          <View style={{ marginTop: 6 }}>
+            {childTimetable.slice(0, 4).map((slot, idx) => (
+              <View
+                key={slot.id || idx}
+                style={[
+                  styles.subjectRow,
+                  idx < Math.min(childTimetable.length, 4) - 1 && [styles.subjectBorder, { borderBottomColor: colors.cardBorder }],
+                ]}
+              >
+                <View>
+                  <AppText variant="bodyBold" style={{ color: colors.text.primary, fontSize: 13 }}>
+                    {slot.subjectName || slot.subject || 'Academic Period'}
+                  </AppText>
+                  <AppText variant="caption" style={{ color: colors.text.muted, fontSize: 11 }}>
+                    {slot.time || `${slot.startTime || '08:30'} - ${slot.endTime || '09:20'}`} • {slot.roomNo || slot.room || 'Room 201'}
+                  </AppText>
+                </View>
+                <Badge label={slot.teacherName || 'Faculty'} variant="neutral" size="sm" />
+              </View>
+            ))}
+          </View>
+        ) : (
+          <View style={{ paddingVertical: 8 }}>
+            <AppText variant="caption" style={{ color: colors.text.secondary, fontStyle: 'italic' }}>
+              Standard school hours: 08:30 AM – 03:30 PM (6 periods daily)
+            </AppText>
+          </View>
+        )}
       </View>
 
       {/* Tuition / Fee Status Card */}

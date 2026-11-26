@@ -21,3 +21,12 @@ export { ScreenWrapper } from './layout/ScreenWrapper';
 export { Header } from './layout/Header';
 export { GlassTaskbar } from './layout/GlassTaskbar';
 export { SidebarDrawer } from './layout/SidebarDrawer';
+
+// Teacher Operations
+export {
+  StudentAttendanceModal,
+  HomeworkModal,
+  MarksEntryModal,
+  ParentCommunicationModal,
+} from './teacher';
+
